@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+pandas
+scikit-learn
+requests
+python-multipart
+numpy
+pydantic
+lightgbm
+xgboost
+fastdtw
+scipy
