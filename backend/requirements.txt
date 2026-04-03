@@ -1,5 +1,6 @@
 fastapi
-uvicorn
+uvicorn[standard]
+gunicorn
 pandas
 scikit-learn
 requests
@@ -7,6 +8,4 @@ python-multipart
 numpy
 pydantic
 lightgbm
-xgboost
-fastdtw
 scipy

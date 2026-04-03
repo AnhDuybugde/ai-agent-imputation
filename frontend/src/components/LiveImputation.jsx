@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { AlertTriangle, CheckCircle, RefreshCw, Search, Wifi, WifiOff, Cpu, Zap } from 'lucide-react'
 
+const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+
 export default function LiveImputation() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -11,7 +13,7 @@ export default function LiveImputation() {
   const handleFetch = async () => {
     setLoading(true)
     try {
-      const res = await axios.get('http://127.0.0.1:8000/api/live/fetch_weather')
+      const res = await axios.get(`${API}/api/live/fetch_weather`)
       setData(res.data)
       setLastUpdated(new Date().toLocaleTimeString())
     } catch (e) {

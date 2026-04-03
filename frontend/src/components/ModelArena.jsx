@@ -3,6 +3,8 @@ import axios from 'axios'
 import { Play, Trophy, Crosshair, TrendingUp, Search, Activity, CheckCircle2, Loader2 } from 'lucide-react'
 import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
+const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+
 const MODEL_PIPELINE = [
   { name: 'Linear Interpolation', icon: '📐', color: 'text-blue-400' },
   { name: 'KNN Spatial',         icon: '🌐', color: 'text-emerald-400' },
@@ -20,7 +22,7 @@ export default function ModelArena() {
   const timerRef = useRef(null)
 
   useEffect(() => {
-    axios.get('http://127.0.0.1:8000/api/evaluation/eda')
+    axios.get(`${API}/api/evaluation/eda`)
       .then(res => {
         if (res.data && res.data.stations) {
           setStations(res.data.stations)
@@ -44,7 +46,7 @@ export default function ModelArena() {
     }, 2500)
 
     try {
-      const res = await axios.get(`http://127.0.0.1:8000/api/evaluation/evaluate_gaps?station_id=${stationId}&gap_type=${gapType}`)
+      const res = await axios.get(`${API}/api/evaluation/evaluate_gaps?station_id=${stationId}&gap_type=${gapType}`)
       clearInterval(timerRef.current)
       setPipelineStep(MODEL_PIPELINE.length) // all done
       // Small delay to show "all complete" state before showing results

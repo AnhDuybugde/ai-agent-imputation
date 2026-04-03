@@ -5,6 +5,8 @@ import 'leaflet/dist/leaflet.css'
 import axios from 'axios'
 import { Thermometer, AlertTriangle, Database, ActivitySquare, Activity, Map as MapIcon, Calendar, Link as LinkIcon } from 'lucide-react'
 
+const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+
 // Helper to determine marker color based on mean temperature
 const getTempColor = (temp) => {
   if (temp < 15) return '#3b82f6' // Blue (Cold)
@@ -18,11 +20,11 @@ export default function AgentKnowledge() {
   const [correlation, setCorrelation] = useState(null)
   
   useEffect(() => {
-    axios.get('http://127.0.0.1:8000/api/evaluation/eda')
+    axios.get(`${API}/api/evaluation/eda`)
       .then(res => setData(res.data))
       .catch(console.error)
       
-    axios.get('http://127.0.0.1:8000/api/evaluation/correlation')
+    axios.get(`${API}/api/evaluation/correlation`)
       .then(res => setCorrelation(res.data))
       .catch(console.error)
   }, [])
