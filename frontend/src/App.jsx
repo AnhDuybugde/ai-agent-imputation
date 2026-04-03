@@ -12,10 +12,10 @@ function App() {
   const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false)
 
   const tabs = [
-    { id: 'knowledge', label: 'Knowledge EDA', icon: Activity, gradient: 'from-blue-500 to-indigo-500', shadow: 'shadow-indigo-500/30' },
+    { id: 'knowledge', label: 'Data Knowledge', icon: Activity, gradient: 'from-blue-500 to-indigo-500', shadow: 'shadow-indigo-500/30' },
     { id: 'arena',     label: 'SICE Arena',   icon: BrainCircuit, gradient: 'from-purple-500 to-pink-500', shadow: 'shadow-purple-500/30' },
-    { id: 'custom',    label: 'Full Imputation', icon: Database, gradient: 'from-orange-500 to-rose-500', shadow: 'shadow-orange-500/30' },
-    { id: 'live',      label: 'Live Mode',     icon: Globe, gradient: 'from-emerald-500 to-teal-500', shadow: 'shadow-emerald-500/30' },
+    { id: 'custom',    label: 'Autonomous Imputation', icon: Database, gradient: 'from-orange-500 to-rose-500', shadow: 'shadow-orange-500/30' },
+    { id: 'live',      label: 'Live Metrics',     icon: Globe, gradient: 'from-emerald-500 to-teal-500', shadow: 'shadow-emerald-500/30' },
   ]
 
   return (
@@ -43,25 +43,30 @@ function App() {
 
             <h1 className="text-5xl md:text-6xl font-extrabold title-shimmer leading-tight flex items-center gap-4">
               AI Agent Imputer
+            </h1>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 mt-4">
+              <p className="text-slate-400 text-lg flex items-center gap-2">
+                <Zap size={16} className="text-amber-400" />
+                Spatio-Temporal Data Recovery Engine
+              </p>
+              <div className="hidden sm:block w-1.5 h-1.5 rounded-full bg-slate-700"></div>
+              {/* Premium Floating Upload Button */}
               <button 
                 onClick={() => setIsWorkspaceModalOpen(true)}
-                className="text-sm bg-slate-800 hover:bg-slate-700 transition border border-slate-700 px-4 py-2 rounded-xl flex items-center gap-2 mt-4 md:mt-0 font-normal"
-                title="Manage Workspace"
+                className="group relative inline-flex items-center justify-center gap-2 px-5 py-2 overflow-hidden rounded-full font-medium transition-all hover:scale-105"
               >
-                <HardDrive size={16} className="text-slate-400" />
-                <span className="text-slate-200">
-                  Data: <span className="text-white font-semibold">{workspaceId === 'default' ? 'Default (VN)' : 'Custom Workspace'}</span>
-                </span>
-                <UploadCloud size={14} className="ml-2 text-indigo-400" />
+                <span className="absolute inset-0 w-full h-full bg-gradient-to-br from-indigo-500/20 via-purple-500/20 to-pink-500/20"></span>
+                <span className="absolute bottom-0 right-0 block w-64 h-64 mb-32 mr-4 transition duration-500 origin-bottom-left transform rotate-45 translate-x-24 bg-pink-500 opacity-30 group-hover:rotate-90 ease"></span>
+                <div className="relative flex items-center gap-2 text-indigo-100">
+                  <Database size={16} className="text-pink-400" />
+                  <span className="text-sm">Data Context: <span className="font-bold text-white">{workspaceId === 'default' ? 'Default Sandbox' : 'Custom Workspace'}</span></span>
+                  <UploadCloud size={16} className="ml-1 text-slate-300 transition-transform group-hover:-translate-y-0.5" />
+                </div>
               </button>
-            </h1>
-            <p className="text-slate-400 mt-3 text-lg flex items-center gap-2">
-              <Zap size={16} className="text-amber-400" />
-              Spatio-Temporal Missing Data Recovery Engine (SICE)
-            </p>
+            </div>
           </div>
           
-          <div className="flex bg-slate-900/50 backdrop-blur-xl rounded-2xl p-1.5 border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] flex-wrap">
+          <div className="flex flex-wrap bg-slate-900/50 backdrop-blur-xl rounded-2xl p-1.5 border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)]">
             {tabs.map((tab) => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
@@ -90,10 +95,6 @@ function App() {
           {activeTab === 'live' && <LiveImputation workspaceId={workspaceId} />}
         </main>
 
-        {/* FOOTER */}
-        <footer className="text-center py-6 text-slate-600 text-sm">
-          Built with FastAPI • React • LightGBM • Spatial KNN — 2026 Research Project
-        </footer>
       </div>
 
       {/* WORKSPACE MODAL */}

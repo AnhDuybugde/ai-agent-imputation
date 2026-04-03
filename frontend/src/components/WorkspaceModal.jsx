@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { X, Upload, FileText, MapPin, CheckCircle, Loader, AlertTriangle } from 'lucide-react';
+import { X, Upload, FileText, MapPin, CheckCircle, Loader, AlertTriangle, Database } from 'lucide-react';
 
 const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
@@ -46,7 +46,7 @@ export default function WorkspaceModal({ currentId, onClose, onWorkspaceChange }
       <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden relative">
         <div className="p-6 border-b border-white/5 flex justify-between items-center bg-slate-800/50">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <DatabaseIcon /> Quản Lý Dữ Liệu (Workspace)
+            <Database size={22} className="text-indigo-400" /> Quản Lý Dữ Liệu (Workspace)
           </h2>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition">
             <X size={20} />
@@ -125,8 +125,4 @@ export default function WorkspaceModal({ currentId, onClose, onWorkspaceChange }
       </div>
     </div>
   );
-}
-
-function DatabaseIcon() {
-    return <Database size={22} className="text-indigo-400" />;
 }

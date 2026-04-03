@@ -3,18 +3,76 @@ from fastapi.responses import FileResponse
 import pandas as pd
 import numpy as np
 import os
+import math
 import uuid
 import time
 from data_manager import load_data, get_workspace_dir
-from sice_algorithm import get_paper_weighted_seed, run_ml_imputation
+from sice_algorithm import get_paper_weighted_seed, run_ml_imputation, get_ml_models
+from sklearn.metrics import mean_squared_error
 
 router = APIRouter()
 
-@router.post("/run_full_sice")
-def run_full_sice(model_name: str = "LGBM", workspace_id: str = "default"):
+def agent_auto_select_model(df_temp: pd.DataFrame) -> str:
     """
-    Executes the full SICE imputation pipeline on the entire dataset
-    and returns a path/link to download the filled CSV.
+    Autonomous AI Logic:
+    Takes the dataset, creates a small mock gap on a valid column,
+    runs the 6 available models specifically on that segment,
+    and returns the name of the model that achieved the lowest RMSE.
+    """
+    df_num = df_temp.select_dtypes(include=[np.number])
+    if df_num.empty:
+        return "LGBM" # Fallback
+        
+    # Find a column with enough valid data
+    target_col = None
+    for col in df_num.columns:
+        if df_num[col].notna().sum() > 50:
+            target_col = col
+            break
+            
+    if not target_col:
+        return "LGBM"
+        
+    # Create a small sandbox dataframe
+    # We take the first 100 valid rows to speed up the test
+    df_test = df_temp.dropna(subset=[target_col]).head(200).copy()
+    if len(df_test) < 20:
+        return "Ridge" # Too small for LGBM, use Ridge
+        
+    # Punch a mock hole (len=10)
+    start_pos = 10
+    end_pos = min(start_pos + 10, len(df_test)-1)
+    
+    y_true = df_test.loc[start_pos:end_pos-1, target_col].copy()
+    df_test.loc[start_pos:end_pos-1, target_col] = np.nan
+    
+    # Fast Seed
+    df_seed = get_paper_weighted_seed(df_test)
+    
+    # Race the models
+    models = get_ml_models()
+    best_model = "LGBM"
+    best_rmse = float('inf')
+    
+    for name in models.keys():
+        try:
+            df_imp = run_ml_imputation(df_test, df_seed, name)
+            y_pred = df_imp.loc[start_pos:end_pos-1, target_col]
+            rmse = math.sqrt(mean_squared_error(y_true, y_pred))
+            if rmse < best_rmse:
+                best_rmse = rmse
+                best_model = name
+        except Exception:
+            continue
+            
+    return best_model
+
+@router.post("/run_full_sice")
+def run_full_sice_autonomous(workspace_id: str = "default"):
+    """
+    Executes the FULLY AUTONOMOUS SICE imputation pipeline.
+    It automatically evaluates, picks the best model, runs imputation,
+    and returns the file mapping.
     """
     df_temp, _ = load_data(workspace_id)
     
@@ -25,13 +83,17 @@ def run_full_sice(model_name: str = "LGBM", workspace_id: str = "default"):
     if not df_num.isna().any().any():
         raise HTTPException(400, "Dataset contains no missing values.")
         
+    print(f"Agent starting autonomous analysis for {workspace_id}...")
+    optimal_model = agent_auto_select_model(df_temp)
+    print(f"Agent selected {optimal_model} as the optimal refinement algorithm.")
+
     # Phase 1: Seed
-    print(f"Starting Seed generation for {workspace_id}...")
+    print(f"Starting Seed generation...")
     df_seed = get_paper_weighted_seed(df_temp)
     
     # Phase 2: OvR Imputation
-    print(f"Starting OvR formulation with {model_name}...")
-    df_imp = run_ml_imputation(df_temp, df_seed, model_name)
+    print(f"Starting OvR formulation with {optimal_model}...")
+    df_imp = run_ml_imputation(df_temp, df_seed, optimal_model)
     
     # Create final output folder
     out_dir = get_workspace_dir(workspace_id)
@@ -40,19 +102,18 @@ def run_full_sice(model_name: str = "LGBM", workspace_id: str = "default"):
         out_dir = os.path.join(os.path.dirname(__file__), "..", "workspaces", "default_dist")
         os.makedirs(out_dir, exist_ok=True)
         
-    out_filename = f"imputed_{model_name}_{int(time.time())}.csv"
+    out_filename = f"imputed_{optimal_model}_{int(time.time())}.csv"
     out_path = os.path.join(out_dir, out_filename)
     
-    # Save mapping WMO code mappings back if this is the default dataset
-    # By default, df_imp has the generalized IDs. We will just save it as is.
     df_imp.to_csv(out_path, index=False)
     
     return {
         "status": "success",
         "message": "Imputation complete",
+        "agent_selected_model": optimal_model,
         "download_url": f"/api/imputation/download?workspace_id={workspace_id}&filename={out_filename}",
         "imputed_stats": {
-            "total_rows_filled": df_num.isna().sum().sum()
+            "total_rows_filled": int(df_num.isna().sum().sum())
         }
     }
 
