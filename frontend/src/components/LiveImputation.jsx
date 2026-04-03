@@ -4,7 +4,7 @@ import { AlertTriangle, CheckCircle, RefreshCw, Search, Wifi, WifiOff, Cpu, Zap 
 
 const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
 
-export default function LiveImputation() {
+export default function LiveImputation({ workspaceId }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [lastUpdated, setLastUpdated] = useState('')
@@ -13,7 +13,7 @@ export default function LiveImputation() {
   const handleFetch = async () => {
     setLoading(true)
     try {
-      const res = await axios.get(`${API}/api/live/fetch_weather`)
+      const res = await axios.get(`${API}/api/live/fetch_weather`, { params: { workspace_id: workspaceId } })
       setData(res.data)
       setLastUpdated(new Date().toLocaleTimeString())
     } catch (e) {

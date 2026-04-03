@@ -15,19 +15,19 @@ const getTempColor = (temp) => {
   return '#ef4444' // Red (Hot)
 }
 
-export default function AgentKnowledge() {
+export default function AgentKnowledge({ workspaceId }) {
   const [data, setData] = useState(null)
   const [correlation, setCorrelation] = useState(null)
   
   useEffect(() => {
-    axios.get(`${API}/api/evaluation/eda`)
+    axios.get(`${API}/api/evaluation/eda`, { params: { workspace_id: workspaceId } })
       .then(res => setData(res.data))
       .catch(console.error)
       
-    axios.get(`${API}/api/evaluation/correlation`)
+    axios.get(`${API}/api/evaluation/correlation`, { params: { workspace_id: workspaceId } })
       .then(res => setCorrelation(res.data))
       .catch(console.error)
-  }, [])
+  }, [workspaceId])
 
   if (!data) return <div className="animate-pulse h-64 bg-slate-800/50 rounded-xl" />
 

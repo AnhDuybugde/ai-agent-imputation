@@ -8,10 +8,9 @@ import math
 router = APIRouter()
 
 API_KEY = "6f6d0bf1aa54982e9f33fd582a02b50e"
-_, df_st = load_data()
-
 @router.get("/fetch_weather")
-def fetch_weather():
+def fetch_weather(workspace_id: str = "default"):
+    _, df_st = load_data(workspace_id)
     """
     Fetch live weather for all 43 stations.
     Then deliberately mask ~20% of them to simulate real-world sensor failures,
