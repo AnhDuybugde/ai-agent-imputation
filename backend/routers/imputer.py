@@ -80,8 +80,29 @@ def run_full_sice_autonomous(workspace_id: str = "default"):
         raise HTTPException(400, "Dataset is empty.")
         
     df_num = df_temp.select_dtypes(include=[np.number])
+    target_col = df_num.columns[0] if len(df_num.columns) > 0 else None
+    
+    # Gap Simulation Logic (3 days = 24 rows) for Sandbox/Default
+    comparison_snippet = []
+    gap_indices = []
+    y_true_original = {}
+    
+    if workspace_id == "default" or not df_num.isna().any().any():
+        if target_col is not None and len(df_temp) > 200:
+            # Find a safe spot to punch 24 rows (around row 100 to ensure we have past/future data)
+            start_pos = 100
+            end_pos = start_pos + 24
+            
+            # Save original values
+            for i in range(start_pos, end_pos):
+                y_true_original[i] = float(df_temp.loc[i, target_col])
+                df_temp.loc[i, target_col] = np.nan
+            gap_indices = list(range(start_pos, end_pos))
+            print(f"Agent artificially injected a 24-row gap into {target_col} for simulation.")
+            
+    df_num = df_temp.select_dtypes(include=[np.number])
     if not df_num.isna().any().any():
-        raise HTTPException(400, "Dataset contains no missing values.")
+        raise HTTPException(400, "Dataset contains no missing values and could not be simulated.")
         
     print(f"Agent starting autonomous analysis for {workspace_id}...")
     optimal_model = agent_auto_select_model(df_temp)
@@ -95,10 +116,18 @@ def run_full_sice_autonomous(workspace_id: str = "default"):
     print(f"Starting OvR formulation with {optimal_model}...")
     df_imp = run_ml_imputation(df_temp, df_seed, optimal_model)
     
-    # Create final output folder
+    # Extract comparison if we made gaps
+    if gap_indices and target_col:
+        time_col = 'Time' if 'Time' in df_imp.columns else df_imp.columns[0]
+        for i in gap_indices[:15]:  # limit to 15 rows for UI table display
+            comparison_snippet.append({
+                "time": str(df_imp.loc[i, time_col]),
+                "original": y_true_original.get(i, None),
+                "imputed": round(float(df_imp.loc[i, target_col]), 2)
+            })
+            
     out_dir = get_workspace_dir(workspace_id)
     if not out_dir:
-        # Default scenario fallback
         out_dir = os.path.join(os.path.dirname(__file__), "..", "workspaces", "default_dist")
         os.makedirs(out_dir, exist_ok=True)
         
@@ -113,8 +142,9 @@ def run_full_sice_autonomous(workspace_id: str = "default"):
         "agent_selected_model": optimal_model,
         "download_url": f"/api/imputation/download?workspace_id={workspace_id}&filename={out_filename}",
         "imputed_stats": {
-            "total_rows_filled": int(df_num.isna().sum().sum())
-        }
+            "total_rows_filled": gap_indices and len(gap_indices) or int(df_num.isna().sum().sum())
+        },
+        "comparison_snippet": comparison_snippet
     }
 
 @router.get("/download")

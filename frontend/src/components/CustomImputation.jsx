@@ -180,6 +180,47 @@ export default function CustomImputation({ workspaceId }) {
                 Download Imputed Dataset
               </button>
 
+              {result.comparison_snippet && result.comparison_snippet.length > 0 && (
+                <div className="mt-12 text-left bg-slate-900 border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
+                  <div className="p-4 bg-slate-800/80 border-b border-slate-700 items-center justify-between flex">
+                     <h4 className="text-white font-bold text-sm tracking-wide uppercase flex items-center gap-2">
+                        <Activity size={16} className="text-emerald-400"/> Example Data Reconstruction
+                     </h4>
+                     <span className="text-xs text-slate-400 bg-slate-900 px-2 py-1 rounded-md">Snapshot (Max 15 rows)</span>
+                  </div>
+                  <div className="overflow-x-auto max-h-[300px] overflow-y-auto custom-scrollbar">
+                    <table className="w-full text-sm text-left">
+                      <thead className="bg-slate-900/90 text-xs text-slate-400 uppercase sticky top-0 z-10 shadow-md">
+                        <tr>
+                          <th className="px-6 py-4">Timestamp (Time Component)</th>
+                          <th className="px-6 py-4">Original Corrupted Status</th>
+                          <th className="px-6 py-4">Autonomous Imputation Output</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800">
+                        {result.comparison_snippet.map((row, idx) => (
+                          <tr key={idx} className="hover:bg-slate-800/50 transition">
+                            <td className="px-6 py-3 font-mono text-slate-400">{row.time}</td>
+                            <td className="px-6 py-3">
+                              {row.original !== null ? (
+                                <span className="text-emerald-400/50 line-through">{row.original}</span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-500/10 text-rose-400 font-medium text-xs border border-rose-500/20">
+                                  [ Missing Gap ]
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-6 py-3 font-mono font-bold text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]">
+                              {row.imputed}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
               <div className="mt-8">
                 <button 
                   onClick={() => setResult(null)} 
