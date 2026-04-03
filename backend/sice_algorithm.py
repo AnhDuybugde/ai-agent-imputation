@@ -5,7 +5,7 @@ from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.svm import SVR
-from lightgbm import LGBMRegressor
+from sklearn.ensemble import HistGradientBoostingRegressor
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -68,7 +68,7 @@ def get_paper_weighted_seed(df_miss: pd.DataFrame):
             if len_before > 0:
                 X_train_before = df_features.iloc[valid_before][features].values
                 y_train_before = s.iloc[valid_before].values
-                model_before = LGBMRegressor(n_estimators=30, n_jobs=-1, random_state=42, verbose=-1)
+                model_before = HistGradientBoostingRegressor(max_iter=30, random_state=42)
                 model_before.fit(X_train_before, y_train_before)
                 y_before = model_before.predict(X_test)
                 
@@ -76,7 +76,7 @@ def get_paper_weighted_seed(df_miss: pd.DataFrame):
             if len_after > 0:
                 X_train_after = df_features.iloc[valid_after][features].values
                 y_train_after = s.iloc[valid_after].values
-                model_after = LGBMRegressor(n_estimators=30, n_jobs=-1, random_state=42, verbose=-1)
+                model_after = HistGradientBoostingRegressor(max_iter=30, random_state=42)
                 model_after.fit(X_train_after, y_train_after)
                 y_after = model_after.predict(X_test)
                 
@@ -105,7 +105,7 @@ def get_ml_models():
         'KNN': KNeighborsRegressor(n_neighbors=5, n_jobs=-1),
         'DT': DecisionTreeRegressor(random_state=42),
         'SVR': SVR(kernel='rbf'), 
-        'LGBM': LGBMRegressor(n_estimators=50, n_jobs=-1, random_state=42, verbose=-1)
+        'HGBT': HistGradientBoostingRegressor(max_iter=50, random_state=42)
     }
 
 # ==========================================
@@ -123,7 +123,7 @@ def run_ml_imputation(df_miss: pd.DataFrame, df_seed: pd.DataFrame, model_name: 
     models_dict = get_ml_models()
     if model_name not in models_dict:
         # Fallback 
-        model_name = 'LGBM'
+        model_name = 'HGBT'
         
     model = models_dict[model_name]
     

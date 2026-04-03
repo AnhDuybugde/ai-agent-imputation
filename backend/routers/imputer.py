@@ -21,7 +21,7 @@ def agent_auto_select_model(df_temp: pd.DataFrame) -> str:
     """
     df_num = df_temp.select_dtypes(include=[np.number])
     if df_num.empty:
-        return "LGBM" # Fallback
+        return "HGBT" # Fallback
         
     # Find a column with enough valid data
     target_col = None
@@ -31,13 +31,13 @@ def agent_auto_select_model(df_temp: pd.DataFrame) -> str:
             break
             
     if not target_col:
-        return "LGBM"
+        return "HGBT"
         
     # Create a small sandbox dataframe
     # We take the first 100 valid rows to speed up the test
     df_test = df_temp.dropna(subset=[target_col]).head(200).copy()
     if len(df_test) < 20:
-        return "Ridge" # Too small for LGBM, use Ridge
+        return "Ridge" # Too small for HGBT, use Ridge
         
     # Punch a mock hole (len=10)
     start_pos = 10
@@ -51,7 +51,7 @@ def agent_auto_select_model(df_temp: pd.DataFrame) -> str:
     
     # Race the models
     models = get_ml_models()
-    best_model = "LGBM"
+    best_model = "HGBT"
     best_rmse = float('inf')
     
     for name in models.keys():
