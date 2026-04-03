@@ -8,21 +8,22 @@ import math
 router = APIRouter()
 
 API_KEY = "6f6d0bf1aa54982e9f33fd582a02b50e"
+
 @router.get("/fetch_weather")
 def fetch_weather(workspace_id: str = "default"):
-    _, df_st = load_data(workspace_id)
     """
-    Fetch live weather for all 43 stations.
+    Fetch live weather for all stations.
     Then deliberately mask ~20% of them to simulate real-world sensor failures,
     so the AI imputation engine always has something to demonstrate.
     """
+    _, df_st = load_data(workspace_id)
     stations = df_st.to_dict(orient="records")
     
     def fetch_station(st):
-        lat = st['Vĩ độ (°N)']
-        lon = st['Kinh độ (°E)']
-        wmo = str(st['Tên cột gốc (CSV)'])
-        name = st['Tên trạm']
+        lat = st['lat']
+        lon = st['lon']
+        st_id = str(st['id'])
+        name = st['name']
         
         try:
             url = f"http://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric"
@@ -34,12 +35,12 @@ def fetch_weather(workspace_id: str = "default"):
             status = "Missing (Offline)"
             
         return {
-            "wmo_code": wmo,
+            "wmo_code": st_id,
             "name": name,
             "lat": lat,
             "lon": lon,
             "temp": temp,
-            "temp_original": temp,  # keep a copy for metrics
+            "temp_original": temp,
             "status": status
         }
         
@@ -49,12 +50,9 @@ def fetch_weather(workspace_id: str = "default"):
     weather_data = sorted(results, key=lambda x: x['wmo_code'])
     
     # ========== SIMULATE SENSOR FAILURES ==========
-    # Randomly select ~20% of stations that successfully returned data
-    #  and mask their temperature to None — simulating equipment failure.
     successful_indices = [i for i, d in enumerate(weather_data) if d['temp'] is not None]
     n_to_mask = max(1, math.ceil(len(successful_indices) * 0.2))
     
-    # Use a fresh random seed each call for variety
     masked_indices = set(random.sample(successful_indices, min(n_to_mask, len(successful_indices))))
     
     for i in masked_indices:
@@ -78,16 +76,14 @@ def fetch_weather(workspace_id: str = "default"):
         
         for d in weather_data:
             if d['temp'] is None:
-                # Use nearby stations (geographic proximity) for smarter imputation
                 nearby_temps = []
                 for other in weather_data:
                     if other['temp'] is not None:
                         dist = ((d['lat'] - other['lat'])**2 + (d['lon'] - other['lon'])**2) ** 0.5
-                        if dist < 3:  # within ~3 degrees lat/lon
+                        if dist < 3:
                             nearby_temps.append((dist, other['temp']))
                 
                 if nearby_temps:
-                    # Inverse-distance weighted average
                     nearby_temps.sort(key=lambda x: x[0])
                     top_k = nearby_temps[:5]
                     weights = [1/(dist + 0.01) for dist, _ in top_k]
@@ -96,12 +92,10 @@ def fetch_weather(workspace_id: str = "default"):
                 else:
                     imputed_temp = mean_all
                 
-                # Add a tiny noise to simulate model variance
                 imputed_temp = round(imputed_temp + random.uniform(-0.3, 0.3), 2)
                 d['temp_imputed'] = imputed_temp
                 d['status'] += f" → Imputed by {best_model}"
                 
-                # Compute FB & FSD against true original if available
                 if d['temp_original'] is not None:
                     fb_i = (imputed_temp - d['temp_original']) / max(abs(d['temp_original']), 0.01)
                     fsd_i = abs(imputed_temp - d['temp_original']) / max(std_all, 0.01)
