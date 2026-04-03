@@ -24,3 +24,20 @@ __pycache__/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Env files
+.env
+.env.local
+.env.production
+
+# Agent internal
+.agent/
+.gemini/
+notebooklm-py/
+
+# Notebook checkpoints
+.ipynb_checkpoints/

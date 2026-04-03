@@ -35,11 +35,66 @@ def get_eda():
         } for _, row in sample_df.iterrows()
     ]
 
+    # Generate missing calendar data for the selected station logic or overall
+    # We will compute null counts by month and day
+    df_null = df_temp[df_temp.select_dtypes(include=[np.number]).columns].isnull().sum(axis=1)
+    df_temp_missing = df_temp[['TimeVN']].copy()
+    df_temp_missing['missing_nodes'] = df_null
+    
+    # Aggregate missingness by date
+    df_missing_date = df_temp_missing.groupby(df_temp_missing['TimeVN'].dt.date)['missing_nodes'].sum().reset_index()
+    # take top 365 days or typical year
+    missing_calendar = [
+        {"date": str(row['TimeVN']), "count": int(row['missing_nodes'])}
+        for _, row in df_missing_date.tail(100).iterrows() # last 100 days for simplicity
+    ]
+
     return {
         "overall": eda_stats,
         "stations": station_stats,
-        "time_series": time_series_sample
+        "time_series": time_series_sample,
+        "missing_calendar": missing_calendar
     }
+
+@router.get("/correlation")
+def get_correlation():
+    """
+    Compute exactly as user requested:
+    corr = (pearson.abs() + spearman.abs()) / 2
+    threshold = 0.8
+    """
+    df_num = df_temp.select_dtypes(include=[np.number])
+    p_corr = df_num.corr(method='pearson').abs()
+    s_corr = df_num.corr(method='spearman').abs()
+    
+    final_corr = (p_corr + s_corr) / 2
+    
+    # Format into a network representation
+    links = []
+    nodes_added = set()
+    
+    for col1 in final_corr.columns:
+        for col2 in final_corr.columns:
+            if col1 != col2 and col1 < col2: # Upper triangle to avoid dupes
+                val = final_corr.loc[col1, col2]
+                if val >= 0.8:
+                    links.append({"source": col1, "target": col2, "value": round(val, 3)})
+                    nodes_added.add(col1)
+                    nodes_added.add(col2)
+                    
+    nodes = []
+    # Collect node standard info
+    for st_id in nodes_added:
+        st_info = df_st[df_st['WMO_Code'].astype(str) == str(st_id)]
+        if not st_info.empty:
+            nodes.append({
+                "id": str(st_id), 
+                "name": st_info['Tên trạm'].values[0]
+            })
+        else:
+            nodes.append({"id": str(st_id), "name": str(st_id)})
+            
+    return {"nodes": nodes, "links": links}
 
 @router.get("/evaluate_gaps")
 def evaluate_gaps(station_id: str, gap_type: str = "short"):
@@ -84,27 +139,46 @@ def evaluate_gaps(station_id: str, gap_type: str = "short"):
         df[f'{n}_lag1'] = df[n].shift(1)
         df[f'{n}_lag3'] = df[n].shift(3)
 
-    # 3. Create Artificial Gaps
-    # Ensure there are no actual NaNs in the synthetic area initially or just drop rows with NaNs
+    # 3. Create Artificial Gaps using multiple gaps logic (anti-overlap)
     df = df.dropna().reset_index(drop=True)
     n_rows = len(df)
     
-    start_idx = n_rows // 2 # Punch holes in the middle
-    if gap_type == "short":
-        gap_len = 4
-    elif gap_type == "continuous":
-        gap_len = 56 # ~7 days (8 samples per day)
-    else: # spatial
-        gap_len = 1000 # very huge gap simulating broken sensor
+    # gap_type corresponds to days: "1", "3", "5", "7"
+    try:
+        gap_days = int(gap_type)
+    except:
+        gap_days = 7
         
-    gap_indices = list(range(start_idx, start_idx + gap_len))
-    
-    # Ground truth
-    y_true = df.loc[gap_indices, target_col].copy()
-    
-    # Create the gap in training data
-    df.loc[gap_indices, target_col] = np.nan
+    gap_len = gap_days * 8 # 8 rows per day
+    num_gaps = 10 # Explicitly set to 10 as in notebook code
 
+    # Find 1:00 AM positions (Fast because TimeVN is already datetime)
+    available_starts = np.where(df['TimeVN'].dt.hour == 1)[0].tolist()
+    available_starts = [pos for pos in available_starts if pos + gap_len <= n_rows]
+    
+    np.random.seed(42)  # For reproducibility in evaluation
+    gap_indices_list = []
+    
+    # Ground truth full array
+    y_true_full = df[target_col].copy()
+    
+    for _ in range(num_gaps):
+        if not available_starts:
+            break
+        start_pos = int(np.random.choice(available_starts))
+        end_pos = start_pos + gap_len
+        
+        # Punch hole
+        df.loc[start_pos:end_pos-1, target_col] = np.nan
+        gap_indices_list.extend(list(range(start_pos, end_pos)))
+        
+        # Anti-overlap logic
+        available_starts = [pos for pos in available_starts if abs(pos - start_pos) > gap_len]
+        
+    gap_indices = gap_indices_list
+    
+    # Wait, the gap_len logic here is up to end_pos - 1, which has gap_len elements
+    
     # 4. Prepare Models & Training Set
     # Features X: time components + top 3 nearest
     features = ['hour', 'month', 'dayofyear'] + top_3_neighbors + [f'{n}_lag1' for n in top_3_neighbors]
@@ -153,7 +227,7 @@ def evaluate_gaps(station_id: str, gap_type: str = "short"):
         if sum(valid) == 0:
             continue
             
-        y_t = y_true.values[valid]
+        y_t = y_true_full.loc[gap_indices].values[valid]
         y_p = y_pred[valid]
 
         rmse = math.sqrt(mean_squared_error(y_t, y_p))
@@ -183,23 +257,27 @@ def evaluate_gaps(station_id: str, gap_type: str = "short"):
     # Sort results
     results.sort(key=lambda x: x['score'], reverse=True)
 
-    # 6. Generate Plot Data for Best Model
+    # 6. Generate Plot Data for Best Model (Focus on the first generated gap to visualize)
     best_model_name = results[0]['model']
-    best_pred = model_preds[best_model_name]
+    best_pred = model_preds[best_model_name] # predictions for all gaps
     
-    view_start = max(0, start_idx - 50)
-    view_end = min(n_rows, start_idx + gap_len + 50)
+    # We only visualize the first gap section
+    first_gap_start = min(gap_indices) if gap_indices else 0
+    first_gap_end = first_gap_start + gap_len
+    
+    view_start = max(0, first_gap_start - 50)
+    view_end = min(n_rows, first_gap_end + 50)
     
     plot_data = []
     for i in range(view_start, view_end):
         row_time = df.loc[i, 'TimeVN']
-        # The true value that was originally there before we punched the hole
-        true_val = float(y_true.get(i, df.loc[i, target_col])) if pd.notnull(df.loc[i, target_col]) or i in gap_indices else None
+        # The true value that was originally there
+        true_val = float(y_true_full.get(i, df.loc[i, target_col])) if pd.notnull(df.loc[i, target_col]) or i in gap_indices else None
         
         if true_val is None:
             continue
             
-        if i in gap_indices:
+        if i in gap_indices and i < first_gap_end:
             p_idx = gap_indices.index(i)
             # Make sure it's valid
             pred_val = float(best_pred[p_idx]) if p_idx < len(best_pred) else None
