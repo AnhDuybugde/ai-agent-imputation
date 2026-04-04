@@ -160,12 +160,30 @@ export default function CustomImputation({ workspaceId }) {
               
               <h3 className="text-3xl font-extrabold text-white mb-2">Protocol Successful</h3>
               
-              <div className="bg-slate-900/80 inline-block px-6 py-4 rounded-xl border border-white/10 mt-4 mb-8">
-                  <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider font-semibold">Agent Selected Model</p>
+              <div className="mt-8 bg-[#0a0f18] text-left border border-slate-700/60 rounded-xl overflow-hidden mb-8 shadow-xl">
+                  <div className="px-4 py-2 bg-slate-800 border-b border-slate-700 flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-rose-500"></div>
+                      <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                      <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                      <span className="ml-2 text-xs text-slate-400 font-mono tracking-wider">qwen-2.5-agent-terminal.exe</span>
+                  </div>
+                  <div className="p-5 font-mono text-sm leading-relaxed text-slate-300">
+                      <div className="mb-2">
+                          <span className="text-emerald-400 mr-2">$</span>
+                          <span className="text-emerald-300">agent extract_reasoning_trace</span>
+                      </div>
+                      <p className="text-slate-400 whitespace-pre-wrap">
+                          {result.agent_reasoning || "Reasoning engine output log is empty."}
+                      </p>
+                  </div>
+              </div>
+
+              <div className="bg-slate-900/80 inline-block px-6 py-4 rounded-xl border border-white/10 mb-8">
+                  <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider font-semibold">LLM Directed Imputation Model</p>
                   <p className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 flex items-center justify-center gap-2">
                     <Trophy className="text-emerald-400" size={24} /> {result.agent_selected_model}
                   </p>
-                  <p className="text-xs text-slate-500 mt-2 border-t border-slate-700/50 pt-2 mt-2">Model achieved highest dynamic accuracy score</p>
+                  <p className="text-xs text-slate-500 mt-2 border-t border-slate-700/50 pt-2 float_clear">Executed autonomously based on spatial-temporal context</p>
               </div>
 
               <p className="text-slate-300 font-medium mb-8 text-lg">

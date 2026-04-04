@@ -9,6 +9,7 @@ import time
 from data_manager import load_data, get_workspace_dir
 from sice_algorithm import get_paper_weighted_seed, run_ml_imputation, get_ml_models
 from sklearn.metrics import mean_squared_error
+from agent_core import generate_agent_decision
 
 router = APIRouter()
 
@@ -105,8 +106,24 @@ def run_full_sice_autonomous(workspace_id: str = "default"):
         raise HTTPException(400, "Dataset contains no missing values and could not be simulated.")
         
     print(f"Agent starting autonomous analysis for {workspace_id}...")
-    optimal_model = agent_auto_select_model(df_temp)
-    print(f"Agent selected {optimal_model} as the optimal refinement algorithm.")
+    
+    total_missing = int(df_num.isna().sum().sum())
+    eda_summary = {
+        "total_records": len(df_temp),
+        "target_variance": float(df_temp[target_col].var()) if target_col else 0.0,
+        "is_gap_simulated": bool(gap_indices)
+    }
+    
+    # 🧠 True LLM Agent Cognitive Engine Call
+    llm_decision = generate_agent_decision(eda_summary, total_missing, target_col)
+    optimal_model = llm_decision.get("model", "HGBT")
+    agent_reasoning = llm_decision.get("reasoning", "Agent reasoning unavailable.")
+    
+    # Ensure optimal model maps to valid SICE options
+    if optimal_model not in get_ml_models():
+        optimal_model = "HGBT"
+        
+    print(f"Agent selected {optimal_model} with reasoning: {agent_reasoning}")
 
     # Phase 1: Seed
     print(f"Starting Seed generation...")
@@ -140,6 +157,7 @@ def run_full_sice_autonomous(workspace_id: str = "default"):
         "status": "success",
         "message": "Imputation complete",
         "agent_selected_model": optimal_model,
+        "agent_reasoning": agent_reasoning,
         "download_url": f"/api/imputation/download?workspace_id={workspace_id}&filename={out_filename}",
         "imputed_stats": {
             "total_rows_filled": gap_indices and len(gap_indices) or int(df_num.isna().sum().sum())
