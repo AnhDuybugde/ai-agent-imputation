@@ -54,13 +54,15 @@ def get_ml_models():
 # ==========================================
 # 3. ONE-VS-REST FINAL IMPUTATION
 # ==========================================
-def run_ml_imputation(df_miss: pd.DataFrame, df_seed: pd.DataFrame, model_name: str):
+def run_ml_imputation(df_miss: pd.DataFrame, df_seed: pd.DataFrame, model_name: str, target_focus: str = None):
     """
-    OvR refinement: loops through each target column, uses the pre-imputed seed 
+    SICE refinement: loops through each target column, uses the pre-imputed seed 
     as features, and predicts the actual NaNs using standard machine learning models.
     """
     df_num = df_miss.select_dtypes(include=[np.number]).astype('float32')
     target_cols = df_num.columns.tolist()
+    if target_focus and target_focus in target_cols:
+        target_cols = [target_focus]
     working = df_seed[target_cols].copy()
     
     models_dict = get_ml_models()

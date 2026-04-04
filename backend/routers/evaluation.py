@@ -86,14 +86,15 @@ def get_correlation(workspace_id: str = "default"):
 def evaluate_gaps(station_id: str, gap_type: str = "3", workspace_id: str = "default"):
     """
     SICE AI Agent Evaluation Pipeline.
-    (Bidirectional LGBM Pre-impute + OvR Regression)
+    (Mean Pre-impute + SICE Regression)
     """
     df_temp, _ = load_data(workspace_id)
     target_col = str(station_id)
     if target_col not in df_temp.columns:
         return {"error": f"Station {station_id} not found in workspace."}
 
-    df = df_temp.copy()
+    # Restrict simulation to 1500 rows to prevent RAM OOM with SVR/KNN
+    df = df_temp.head(1500).copy()
     
     # 1. Create artificial gaps in the target column
     # Only keep periods where target_col is healthy to simulate gaps accurately
@@ -144,8 +145,8 @@ def evaluate_gaps(station_id: str, gap_type: str = "3", workspace_id: str = "def
     model_preds = {}
     
     for name in models.keys():
-        # OvR refinement
-        df_imp = run_ml_imputation(df, df_seed, name)
+        # SICE refinement limited to the specific target column
+        df_imp = run_ml_imputation(df, df_seed, name, target_focus=target_col)
         y_pred_full = df_imp[target_col]
         
         # Extract predictions for the gap indices
