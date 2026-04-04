@@ -7,8 +7,8 @@ const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
 
 const SICE_PIPELINE = [
   { name: 'Extract Features', icon: '🔍', color: 'text-indigo-400' },
-  { name: 'Pre-impute Seed (LGBM)', icon: '🌱', color: 'text-emerald-400' },
-  { name: 'OvR Training', icon: '🧠', color: 'text-purple-400' },
+  { name: 'Pre-impute Seed (Mean)', icon: '🌱', color: 'text-emerald-400' },
+  { name: 'SICE Training', icon: '🧠', color: 'text-purple-400' },
   { name: 'Inference', icon: '⚡', color: 'text-amber-400' },
 ]
 
@@ -180,7 +180,7 @@ export default function ModelArena({ workspaceId }) {
             
             <div className="mt-4 p-3 bg-indigo-500/10 rounded-lg text-xs text-indigo-300 flex gap-2">
                 <Info size={14} className="shrink-0" />
-                <span>Bidirectional LGBM pre-imputing data based on recent Temporal patterns.</span>
+                <span>Mean Substitution pre-imputing data based on statistical average.</span>
             </div>
           </div>
         )}
@@ -195,7 +195,7 @@ export default function ModelArena({ workspaceId }) {
               <div className="col-span-2 md:col-span-4 p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 flex justify-between items-center">
                 <div>
                   <h3 className="text-emerald-400 font-bold flex items-center gap-2">
-                    <Trophy size={18} /> Best OvR Model
+                    <Trophy size={18} /> Best SICE Model
                   </h3>
                   <p className="text-2xl font-black mt-1 text-white">{results.best_model}</p>
                 </div>

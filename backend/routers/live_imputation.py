@@ -5,12 +5,22 @@ import random
 import concurrent.futures
 import math
 
+import os
+
 router = APIRouter()
 
-API_KEY = "6f6d0bf1aa54982e9f33fd582a02b50e"
+def load_openweather_token():
+    env_path = os.path.join(os.path.dirname(__file__), "..", "frontend", ".env")
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("OPENWEATHER_API_KEY="):
+                    return line.strip().split("=")[1].strip()
+    return os.environ.get("OPENWEATHER_API_KEY", "")
 
 @router.get("/fetch_weather")
 def fetch_weather(workspace_id: str = "default"):
+    API_KEY = load_openweather_token() or "6f6d0bf1aa54982e9f33fd582a02b50e"
     """
     Fetch live weather for all stations.
     Then deliberately mask ~20% of them to simulate real-world sensor failures,

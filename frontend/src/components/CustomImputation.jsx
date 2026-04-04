@@ -128,8 +128,8 @@ export default function CustomImputation({ workspaceId }) {
                   {progressStep > 3 ? <CheckCircle size={20} /> : <Activity size={20} />}
                 </div>
                 <div className="pt-2">
-                  <h4 className={`font-bold text-lg ${progressStep >= 3 ? 'text-white' : 'text-slate-600'}`}>3. Bidirectional Seed Injection</h4>
-                  {progressStep === 3 && <p className="text-sm text-orange-400 mt-1 animate-pulse">Pre-imputing data using weighted LGBM patterns...</p>}
+                  <h4 className={`font-bold text-lg ${progressStep >= 3 ? 'text-white' : 'text-slate-600'}`}>3. Mean Substitution Seed Injection</h4>
+                  {progressStep === 3 && <p className="text-sm text-orange-400 mt-1 animate-pulse">Pre-imputing data using rapid mean substitution...</p>}
                 </div>
               </div>
 
@@ -139,7 +139,7 @@ export default function CustomImputation({ workspaceId }) {
                   <Sparkles size={20} />
                 </div>
                 <div className="pt-2">
-                  <h4 className={`font-bold text-lg ${progressStep >= 4 ? 'text-white' : 'text-slate-600'}`}>4. One-vs-Rest Final Refinement</h4>
+                  <h4 className={`font-bold text-lg ${progressStep >= 4 ? 'text-white' : 'text-slate-600'}`}>4. SICE (Single Imputation by Chained Equations)</h4>
                   {progressStep === 4 && <p className="text-sm text-orange-400 mt-1">Applying winning formula to the entire Matrix...</p>}
                 </div>
               </div>
